@@ -49,3 +49,6 @@ The experimental examples are built on Mesa APIs that live under `mesa.experimen
 
 ### [Alliance Formation Model](examples/experimental/alliance_formation)
 Demonstrates dynamic meta-agent creation: agents form alliances through a game-theoretic process, and the resulting alliances become meta-agents that can themselves form higher-level alliances.
+
+### [Tram Route Model](examples/experimental/tram_model)
+Demonstrates continuous states and thresholds: a tram accelerates, coasts, brakes and dwells its way along a route, with every transition solved for analytically and scheduled on the event queue rather than polled for on each tick.
