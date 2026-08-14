@@ -116,6 +116,95 @@ class AbstractAgentSet[A: Agent](ABC, MutableSet[A]):
         # Use type(self) to ensure we return the correct subclass (AgentSet vs StrongAgentSet)
         return self._update(agents) if inplace else type(self)(agents, self.random)
 
+    def select_random(
+        self,
+        n: int | float = 1,
+        *,
+        weights: str | Callable[[A], float] | Sequence[float] | None = None,
+        replace: bool = False,
+        inplace: bool = False,
+    ) -> AbstractAgentSet[A]:
+        """Select a random or weighted sample of agents from the AbstractAgentSet.
+
+        Args:
+            n (int | float, optional): The number or fraction of agents to select. Defaults to 1.
+                - If an integer >= 1, at most that number of agents are selected.
+                - If a float between 0 and 1, at most that fraction of the agents are selected.
+            weights (str | Callable[[Agent], float] | Sequence[float] | None, optional): Weights for selection.
+                - If a str: uses the specified agent attribute name.
+                - If a Callable: calls the function on each agent to compute its weight.
+                - If a Sequence: a sequence of numerical weights of the same length as the AgentSet.
+                - If None: uniform random selection. Defaults to None.
+            replace (bool, optional): Whether to sample with replacement. Defaults to False.
+            inplace (bool, optional): If True, modifies the current AbstractAgentSet; otherwise, returns a new AbstractAgentSet. Defaults to False.
+
+        Returns:
+            AbstractAgentSet: A new or updated AbstractAgentSet containing the sampled agents.
+
+        Raises:
+            ValueError: If weights are negative, total weight <= 0, or length of weights sequence does not match the AgentSet.
+            TypeError: If weights is of an unsupported type.
+        """
+        if len(self) == 0 or n <= 0:
+            return self._update([]) if inplace else type(self)([], self.random)
+
+        # Check if n is a float fraction
+        if isinstance(n, float) and n <= 1.0:
+            n = int(len(self) * n)
+            if n <= 0:
+                return self._update([]) if inplace else type(self)([], self.random)
+
+        items = self.to_list()
+
+        if weights is None:
+            if replace:
+                chosen = self.random.choices(items, k=n)
+            else:
+                k = min(n, len(items))
+                chosen = self.random.sample(items, k=k)
+        else:
+            if isinstance(weights, str):
+                w = [getattr(agent, weights) for agent in items]
+            elif callable(weights):
+                w = [weights(agent) for agent in items]
+            elif isinstance(weights, Sequence):
+                if len(weights) != len(items):
+                    raise ValueError(
+                        f"Length of weights ({len(weights)}) does not match AgentSet length ({len(items)})"
+                    )
+                w = list(weights)
+            else:
+                raise TypeError(
+                    f"Unsupported weights type: {type(weights).__name__}. "
+                    "Expected str, Callable, Sequence[float], or None."
+                )
+
+            if any(x < 0 for x in w):
+                raise ValueError("All weights must be non-negative.")
+            if sum(w) <= 0:
+                raise ValueError("Sum of weights must be strictly positive.")
+
+            if replace:
+                chosen = self.random.choices(items, weights=w, k=n)
+            else:
+                k = min(n, len(items))
+                if k == 0:
+                    chosen = []
+                else:
+                    # Efraimidis & Spirakis (A-Res) algorithm for weighted sampling without replacement
+                    keys = []
+                    for agent, wi in zip(items, w):
+                        if wi > 0:
+                            u = self.random.random()
+                            key = u ** (1.0 / wi)
+                        else:
+                            key = 0.0
+                        keys.append((key, agent))
+                    keys.sort(key=lambda x: x[0], reverse=True)
+                    chosen = [agent for _, agent in keys[:k]]
+
+        return self._update(chosen) if inplace else type(self)(chosen, self.random)
+
     def agg(
         self, attribute: str, func: Callable | Iterable[Callable]
     ) -> Any | list[Any]:
