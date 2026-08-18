@@ -946,10 +946,9 @@ def test_select_random_uniform():
     assert len(sampled) == 5
     assert len(set(sampled)) == 5  # No duplicates
 
-    # Clamping when n > len(agentset)
-    sampled_all = agentset.select_random(50)
-    assert len(sampled_all) == 20
-    assert set(sampled_all) == set(agents)
+    # Error when n > len(agentset) without replacement
+    with pytest.raises(ValueError, match=r"Sample size .* cannot exceed AgentSet size"):
+        agentset.select_random(50)
 
     # Reproducibility with seed
     model1 = Model()
@@ -1083,11 +1082,32 @@ def test_select_random_edge_cases_and_errors():
 
     # Empty agentset
     empty_set = AgentSet([], random=model.random)
-    assert len(empty_set.select_random(5)) == 0
+    with pytest.raises(ValueError, match="Cannot sample from an empty AgentSet"):
+        empty_set.select_random(5)
 
     # n <= 0
-    assert len(agentset.select_random(0)) == 0
-    assert len(agentset.select_random(-1)) == 0
+    with pytest.raises(ValueError, match="n must be a positive integer"):
+        agentset.select_random(0)
+    with pytest.raises(ValueError, match="n must be a positive integer"):
+        agentset.select_random(-1)
+
+    # Invalid fractional n
+    with pytest.raises(ValueError, match="Fractional sample size"):
+        agentset.select_random(0.0)
+    with pytest.raises(ValueError, match="Fractional sample size"):
+        agentset.select_random(-0.5)
+    with pytest.raises(ValueError, match="Fractional sample size"):
+        agentset.select_random(1.5)
+
+    # Invalid type for n
+    with pytest.raises(TypeError, match="n must be an integer or float"):
+        agentset.select_random("five")
+    with pytest.raises(TypeError, match="n must be an integer or float"):
+        agentset.select_random(True)
+
+    # n > len(agentset) when replace=False
+    with pytest.raises(ValueError, match="cannot exceed AgentSet size"):
+        agentset.select_random(10, replace=False)
 
     # Negative weights
     agents[0].w = -5

@@ -24,6 +24,47 @@ if TYPE_CHECKING:
 _MISSING = object()
 
 
+def _resolve_weights(
+    agents: Sequence[Agent],
+    weights: str | Callable[[Agent], float] | Sequence[float],
+) -> list[float]:
+    """Extract and validate numerical weights for a sequence of agents.
+
+    Args:
+        agents: The sequence of agents to extract weights for.
+        weights: Agent attribute name (str), weight callable, or sequence of floats.
+
+    Returns:
+        list[float]: Validated list of non-negative weights with positive sum.
+
+    Raises:
+        TypeError: If weights is of an unsupported type.
+        ValueError: If sequence length does not match, if any weight is negative, or if total sum <= 0.
+    """
+    if isinstance(weights, str):
+        w = [getattr(agent, weights) for agent in agents]
+    elif callable(weights):
+        w = [weights(agent) for agent in agents]
+    elif isinstance(weights, Sequence):
+        if len(weights) != len(agents):
+            raise ValueError(
+                f"Length of weights ({len(weights)}) does not match AgentSet length ({len(agents)})"
+            )
+        w = list(weights)
+    else:
+        raise TypeError(
+            f"Unsupported weights type: {type(weights).__name__}. "
+            "Expected str, Callable, Sequence[float], or None."
+        )
+
+    if any(x < 0 for x in w):
+        raise ValueError("All weights must be non-negative.")
+    if sum(w) <= 0:
+        raise ValueError("Sum of weights must be strictly positive.")
+
+    return w
+
+
 class AbstractAgentSet[A: Agent](ABC, MutableSet[A]):
     """An abstract base collection class that represents an ordered set of agents within an agent-based model (ABM).
 
@@ -128,8 +169,8 @@ class AbstractAgentSet[A: Agent](ABC, MutableSet[A]):
 
         Args:
             n (int | float, optional): The number or fraction of agents to select. Defaults to 1.
-                - If an integer >= 1, at most that number of agents are selected.
-                - If a float between 0 and 1, at most that fraction of the agents are selected.
+                - If an integer >= 1, the number of agents to select.
+                - If a float in (0, 1], the fraction of agents to select.
             weights (str | Callable[[Agent], float] | Sequence[float] | None, optional): Weights for selection.
                 - If a str: uses the specified agent attribute name.
                 - If a Callable: calls the function on each agent to compute its weight.
@@ -142,66 +183,58 @@ class AbstractAgentSet[A: Agent](ABC, MutableSet[A]):
             AbstractAgentSet: A new or updated AbstractAgentSet containing the sampled agents.
 
         Raises:
-            ValueError: If weights are negative, total weight <= 0, or length of weights sequence does not match the AgentSet.
-            TypeError: If weights is of an unsupported type.
+            ValueError: If the AgentSet is empty, n <= 0, n > len(self) when replace=False, weights are negative, total weight <= 0, or length of weights sequence does not match the AgentSet.
+            TypeError: If n or weights is of an unsupported type.
         """
-        if len(self) == 0 or n <= 0:
-            return self._update([]) if inplace else type(self)([], self.random)
+        if len(self) == 0:
+            raise ValueError("Cannot sample from an empty AgentSet.")
 
-        # Check if n is a float fraction
-        if isinstance(n, float) and n <= 1.0:
-            n = int(len(self) * n)
+        if isinstance(n, bool) or not isinstance(n, (int, float)):
+            raise TypeError(f"n must be an integer or float, got {type(n).__name__}.")
+
+        if isinstance(n, int):
             if n <= 0:
-                return self._update([]) if inplace else type(self)([], self.random)
+                raise ValueError(f"n must be a positive integer, got {n}.")
+            sample_size = n
+        else:  # float
+            if not (0.0 < n <= 1.0):
+                raise ValueError(
+                    f"Fractional sample size n must be in the range (0.0, 1.0], got {n}."
+                )
+            sample_size = int(len(self) * n)
+
+        if not replace and sample_size > len(self):
+            raise ValueError(
+                f"Sample size ({sample_size}) cannot exceed AgentSet size ({len(self)}) when replace=False."
+            )
+
+        if sample_size == 0:
+            return self._update([]) if inplace else type(self)([], self.random)
 
         items = self.to_list()
 
         if weights is None:
             if replace:
-                chosen = self.random.choices(items, k=n)
+                chosen = self.random.choices(items, k=sample_size)
             else:
-                k = min(n, len(items))
-                chosen = self.random.sample(items, k=k)
+                chosen = self.random.sample(items, k=sample_size)
         else:
-            if isinstance(weights, str):
-                w = [getattr(agent, weights) for agent in items]
-            elif callable(weights):
-                w = [weights(agent) for agent in items]
-            elif isinstance(weights, Sequence):
-                if len(weights) != len(items):
-                    raise ValueError(
-                        f"Length of weights ({len(weights)}) does not match AgentSet length ({len(items)})"
-                    )
-                w = list(weights)
-            else:
-                raise TypeError(
-                    f"Unsupported weights type: {type(weights).__name__}. "
-                    "Expected str, Callable, Sequence[float], or None."
-                )
-
-            if any(x < 0 for x in w):
-                raise ValueError("All weights must be non-negative.")
-            if sum(w) <= 0:
-                raise ValueError("Sum of weights must be strictly positive.")
+            w = _resolve_weights(items, weights)
 
             if replace:
-                chosen = self.random.choices(items, weights=w, k=n)
+                chosen = self.random.choices(items, weights=w, k=sample_size)
             else:
-                k = min(n, len(items))
-                if k == 0:
-                    chosen = []
-                else:
-                    # Efraimidis & Spirakis (A-Res) algorithm for weighted sampling without replacement
-                    keys = []
-                    for agent, wi in zip(items, w):
-                        if wi > 0:
-                            u = self.random.random()
-                            key = u ** (1.0 / wi)
-                        else:
-                            key = 0.0
-                        keys.append((key, agent))
-                    keys.sort(key=lambda x: x[0], reverse=True)
-                    chosen = [agent for _, agent in keys[:k]]
+                # Efraimidis & Spirakis (A-Res) algorithm for weighted sampling without replacement
+                keys = []
+                for agent, wi in zip(items, w):
+                    if wi > 0:
+                        u = self.random.random()
+                        key = u ** (1.0 / wi)
+                    else:
+                        key = 0.0
+                    keys.append((key, agent))
+                keys.sort(key=lambda x: x[0], reverse=True)
+                chosen = [agent for _, agent in keys[:sample_size]]
 
         return self._update(chosen) if inplace else type(self)(chosen, self.random)
 
