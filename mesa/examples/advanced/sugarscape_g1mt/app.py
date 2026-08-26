@@ -61,10 +61,8 @@ renderer = (
     SpaceRenderer(model, backend="altair")
     .setup_agents(agent_portrayal)
     .setup_property_layer(property_layer_portrayal)
+    .render()
 )
-# Specifically, avoid drawing the grid to hide the grid lines.
-renderer.draw_agents()
-renderer.draw_property_layer()
 
 renderer.post_process = post_process
 
