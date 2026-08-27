@@ -78,12 +78,8 @@ lineplot_component = make_plot_component(
 )
 
 model = WolfSheep(scenario=WolfSheepScenario(grass=True))
-
 renderer = (
-    SpaceRenderer(
-        model,
-        backend="matplotlib",
-    )
+    SpaceRenderer(model, backend="matplotlib")
     .setup_agents(wolf_sheep_portrayal)
     .render()
 )
