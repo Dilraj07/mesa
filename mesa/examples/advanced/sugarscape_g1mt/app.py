@@ -61,8 +61,8 @@ renderer = (
     SpaceRenderer(model, backend="altair")
     .setup_agents(agent_portrayal)
     .setup_property_layer(property_layer_portrayal)
-    .render()
 )
+renderer.render()
 
 renderer.post_process = post_process
 

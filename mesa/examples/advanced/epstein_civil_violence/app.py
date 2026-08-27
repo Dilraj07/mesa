@@ -76,11 +76,10 @@ chart_component = make_plot_component(
 )
 
 epstein_model = EpsteinCivilViolence()
-renderer = (
-    SpaceRenderer(epstein_model, backend="matplotlib")
-    .setup_agents(citizen_cop_portrayal)
-    .render()
+renderer = SpaceRenderer(epstein_model, backend="matplotlib").setup_agents(
+    citizen_cop_portrayal
 )
+renderer.render()
 renderer.post_process = post_process
 
 page = SolaraViz(

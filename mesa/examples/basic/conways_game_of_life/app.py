@@ -55,9 +55,8 @@ model_params = {
 # Create initial model instance
 model1 = ConwaysGameOfLife()
 
-renderer = (
-    SpaceRenderer(model1, backend="matplotlib").setup_agents(agent_portrayal).render()
-)
+renderer = SpaceRenderer(model1, backend="matplotlib").setup_agents(agent_portrayal)
+renderer.render()
 renderer.post_process = post_process
 
 # Create the SolaraViz page. This will automatically create a server and display the
