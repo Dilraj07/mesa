@@ -1438,6 +1438,42 @@ def test_fixed_agent_cannot_unassign_after_placement():
     assert agent.cell is cell
 
 
+def test_cell_agent_move_relative_unplaced_raises():
+    """Moving an unplaced CellAgent raises ValueError."""
+    model = Model()
+    agent = CellAgent(model)
+
+    with pytest.raises(ValueError, match="not in a cell"):
+        agent.move_relative((1, 0))
+
+    assert agent.cell is None
+    assert agent in model.agents
+
+
+def test_grid2d_moving_agent_move_unplaced_raises():
+    """Moving an unplaced Grid2DMovingAgent raises ValueError."""
+    model = Model()
+    agent = Grid2DMovingAgent(model)
+
+    with pytest.raises(ValueError, match="not in a cell"):
+        agent.move("north")
+
+    assert agent.cell is None
+    assert agent in model.agents
+
+
+def test_hex_grid_moving_agent_move_unplaced_raises():
+    """Moving an unplaced HexGridMovingAgent raises ValueError."""
+    model = Model()
+    agent = HexGridMovingAgent(model)
+
+    with pytest.raises(ValueError, match="not in a cell"):
+        agent.move("nw")
+
+    assert agent.cell is None
+    assert agent in model.agents
+
+
 def test_pickling_cell():
     """Test pickling of a Cell."""
     cell = Cell((1,), capacity=1, random=random.Random(42))

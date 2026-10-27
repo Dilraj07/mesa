@@ -66,7 +66,20 @@ class BasicMovement:
 
         Args:
             direction: The direction to move in.
+
+        Raises:
+            ValueError: If the agent is not in a cell, or if there is no cell in the given direction.
         """
+        if self.cell is None:
+            agent_id = (
+                f" {self.unique_id}"
+                if hasattr(self, "unique_id") and self.unique_id is not None
+                else ""
+            )
+            raise ValueError(
+                f"Cannot move {type(self).__name__}{agent_id}: it is not in a "
+                "cell. An agent must be placed in a cell before it can move."
+            )
         new_cell = self.cell.connections.get(direction)
         if new_cell is not None:
             self.cell = new_cell
@@ -157,7 +170,21 @@ class Grid2DMovingAgent(CellAgent):
         Args:
             direction: The cardinal direction to move in.
             distance: The distance to move.
+
+        Raises:
+            ValueError: If the agent is not in a cell, or if direction is invalid.
         """
+        if self.cell is None:
+            agent_id = (
+                f" {self.unique_id}"
+                if hasattr(self, "unique_id") and self.unique_id is not None
+                else ""
+            )
+            raise ValueError(
+                f"Cannot move {type(self).__name__}{agent_id}: it is not in a "
+                "cell. An agent must be placed in a cell before it can move."
+            )
+
         direction = direction.lower()  # Convert direction to lowercase
 
         if direction not in self.DIRECTION_MAP:
@@ -224,7 +251,21 @@ class HexGridMovingAgent(CellAgent):
         Args:
             direction: One of 'nw', 'ne', 'sw', 'se', 'w', 'e' (or aliases which are 'n' and 's').
             distance: Number of steps to take.
+
+        Raises:
+            ValueError: If the agent is not in a cell, or if direction is invalid.
         """
+        if self.cell is None:
+            agent_id = (
+                f" {self.unique_id}"
+                if hasattr(self, "unique_id") and self.unique_id is not None
+                else ""
+            )
+            raise ValueError(
+                f"Cannot move {type(self).__name__}{agent_id}: it is not in a "
+                "cell. An agent must be placed in a cell before it can move."
+            )
+
         direction = direction.lower()
 
         for _ in range(distance):
