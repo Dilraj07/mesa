@@ -1406,7 +1406,7 @@ def test_fixed_agent_remove_unplaced_raises():
     model = Model()
     agent = FixedAgent(model)
 
-    with pytest.raises(ValueError, match="not in a cell"):
+    with pytest.raises(SpaceException, match="not in a cell"):
         agent.remove()
 
     # the check runs before anything is removed
@@ -1422,7 +1422,7 @@ def test_fixed_agent_remove_twice_raises():
     agent.cell = cell
 
     agent.remove()
-    with pytest.raises(ValueError, match="not in a cell"):
+    with pytest.raises(SpaceException, match="not in a cell"):
         agent.remove()
 
 
@@ -1439,11 +1439,11 @@ def test_fixed_agent_cannot_unassign_after_placement():
 
 
 def test_cell_agent_move_relative_unplaced_raises():
-    """Moving an unplaced CellAgent raises ValueError."""
+    """Moving an unplaced CellAgent raises SpaceException."""
     model = Model()
     agent = CellAgent(model)
 
-    with pytest.raises(ValueError, match="not in a cell"):
+    with pytest.raises(SpaceException, match="not in a cell"):
         agent.move_relative((1, 0))
 
     assert agent.cell is None
@@ -1451,11 +1451,11 @@ def test_cell_agent_move_relative_unplaced_raises():
 
 
 def test_grid2d_moving_agent_move_unplaced_raises():
-    """Moving an unplaced Grid2DMovingAgent raises ValueError."""
+    """Moving an unplaced Grid2DMovingAgent raises SpaceException."""
     model = Model()
     agent = Grid2DMovingAgent(model)
 
-    with pytest.raises(ValueError, match="not in a cell"):
+    with pytest.raises(SpaceException, match="not in a cell"):
         agent.move("north")
 
     assert agent.cell is None
@@ -1463,11 +1463,11 @@ def test_grid2d_moving_agent_move_unplaced_raises():
 
 
 def test_hex_grid_moving_agent_move_unplaced_raises():
-    """Moving an unplaced HexGridMovingAgent raises ValueError."""
+    """Moving an unplaced HexGridMovingAgent raises SpaceException."""
     model = Model()
     agent = HexGridMovingAgent(model)
 
-    with pytest.raises(ValueError, match="not in a cell"):
+    with pytest.raises(SpaceException, match="not in a cell"):
         agent.move("nw")
 
     assert agent.cell is None

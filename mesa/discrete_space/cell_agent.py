@@ -16,6 +16,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, ClassVar, Protocol
 
 from mesa.agent import Agent
+from mesa.exceptions import SpaceException
 
 if TYPE_CHECKING:
     from mesa.discrete_space import Cell
@@ -76,7 +77,7 @@ class BasicMovement:
                 if hasattr(self, "unique_id") and self.unique_id is not None
                 else ""
             )
-            raise ValueError(
+            raise SpaceException(
                 f"Cannot move {type(self).__name__}{agent_id}: it is not in a "
                 "cell. An agent must be placed in a cell before it can move."
             )
@@ -132,12 +133,12 @@ class FixedAgent(Agent, FixedCell):
         """Remove the agent from the model and from its cell.
 
         Raises:
-            ValueError: If the agent is not in a cell. An unplaced fixed agent is
+            SpaceException: If the agent is not in a cell. An unplaced fixed agent is
                 treated as an error. The check runs before anything is removed, so
                 the agent is left untouched.
         """
         if self.cell is None:
-            raise ValueError(
+            raise SpaceException(
                 f"Cannot remove {type(self).__name__} {self.unique_id}: it is not "
                 "in a cell. A fixed agent has to be placed in a cell before it "
                 "can be removed."
@@ -180,7 +181,7 @@ class Grid2DMovingAgent(CellAgent):
                 if hasattr(self, "unique_id") and self.unique_id is not None
                 else ""
             )
-            raise ValueError(
+            raise SpaceException(
                 f"Cannot move {type(self).__name__}{agent_id}: it is not in a "
                 "cell. An agent must be placed in a cell before it can move."
             )
@@ -261,7 +262,7 @@ class HexGridMovingAgent(CellAgent):
                 if hasattr(self, "unique_id") and self.unique_id is not None
                 else ""
             )
-            raise ValueError(
+            raise SpaceException(
                 f"Cannot move {type(self).__name__}{agent_id}: it is not in a "
                 "cell. An agent must be placed in a cell before it can move."
             )
